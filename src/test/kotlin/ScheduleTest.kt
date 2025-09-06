@@ -57,7 +57,7 @@ class ScheduleTest {
     fun shouldNotAllowANonPositiveRecurrenceInterval(){
         val s = Schedule(today)
         assertThrows<IllegalArgumentException>{
-            s.updateRecurrence(0)
+            s.updateRecurrence(interval = 0)
         }
     }
 
@@ -95,9 +95,39 @@ class ScheduleTest {
     }
 
     @Test
-    fun shouldReturn_TwoPeriods_WhenDayBoundaryIsCrossed(){
+    fun shouldReturn_TwoPeriods_WhenDayBoundaryIsCrossed() {
         val s = Schedule(today, null, fourOClock, twoOClock)
-        val periods = s.periodsAt(today)
+        val periods = s.periodsAt(tomorrow)
         assertEquals(2, periods.size)
+    }
+
+    @Test
+    fun startAndEndOfPeriodShouldEqualStartTime_whenDayBoundaryNotCrossed(){
+        val s = Schedule(today, null, twoOClock, threeOClock)
+        val periods = s.periodsAt(today)
+        assertEquals(twoOClock, periods[0].startTime)
+        assertEquals(threeOClock, periods[0].endTime)
+    }
+
+    @Test
+    fun secondPeriod_ShouldMatchAfterMidNightSchedule_WhenDayBoundaryIsCrossed() {
+        val s = Schedule(today, null, threeOClock, twoOClock)
+        val firstPeriod = s.periodsAt(tomorrow)[1]
+        assertEquals(LocalTime.MIN, firstPeriod.startTime)
+        assertEquals(twoOClock, firstPeriod.endTime)
+    }
+
+    @Test
+    fun firstPeriod_ShouldMatchBeforeMidNight_WhenDayBoundaryCrossed(){
+        val s = Schedule(today, null, threeOClock, twoOClock)
+        val secondPeriod = s.periodsAt(today)[0]
+        assertEquals(threeOClock, secondPeriod.startTime)
+        assertEquals(LocalTime.MAX, secondPeriod.endTime)
+    }
+
+    @Test
+    fun thereCanNotBeTwoPeriods_WhenIsRecurringDaily_AtMoreThanOneInterval_AndCrossesBoundary(){
+        val s = Schedule(today, startTime = fiveOClock, endTime = threeOClock)
+        assertEquals(1, s.periodsAt(today).size)
     }
 }
