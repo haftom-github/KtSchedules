@@ -1,6 +1,7 @@
+import org.example.RecurrenceType
 import org.example.Schedule
-import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows
 import java.time.LocalDate
 import java.time.LocalTime
@@ -10,121 +11,93 @@ class ScheduleTest {
     val tomorrow = today.plusDays(1)!!
     val yesterday = today.minusDays(1)!!
 
-    val twoOClock: LocalTime = LocalTime.of(2, 0)
-    val threeOClock: LocalTime = LocalTime.of(3, 0)
-    val fourOClock: LocalTime = LocalTime.of(4, 0)
-    val fiveOClock: LocalTime = LocalTime.of(5, 0)
+    val twoOClock = LocalTime.of(2, 0)!!
+    val threeOClock = LocalTime.of(3, 0)!!
+    val fourOClock = LocalTime.of(4, 0)!!
+    val fiveOClock = LocalTime.of(5, 0)!!
 
     @Test
-    fun isForever() {
+    fun isForever(){
         assertTrue(Schedule(today).isForever)
+        assertTrue(Schedule(today.atStartOfDay()).isForever)
     }
 
     @Test
-    fun isNotForever_WhenEndProvided() {
-        assertFalse(Schedule(yesterday, tomorrow).isForever)
+    fun isNotForEver_IfEndSpecified(){
+        assertFalse(Schedule(today, tomorrow).isForever)
+        assertFalse(Schedule(today.atStartOfDay(), tomorrow.atStartOfDay()).isForever)
     }
 
     @Test
-    fun shouldRecurDaily() {
-        assertTrue(Schedule(today).recursDaily)
-    }
-
-    @Test
-    fun shouldBeAvailable_OnScheduleDate() {
-        assertTrue(Schedule(today, tomorrow).isWithInSchedule(today))
-    }
-
-    @Test
-    fun shouldNotBeAvailable_OnNonScheduleDate() {
-        assertFalse(Schedule(tomorrow, tomorrow).isWithInSchedule(today))
-    }
-
-    @Test
-    fun shouldBeAvailable_OnTheLastDay() {
-        assertTrue(Schedule(yesterday, tomorrow).isWithInSchedule(tomorrow))
-    }
-
-    @Test
-    fun shouldBeAvailable_OnADayInBetween() {
-        assertTrue(Schedule(yesterday, tomorrow).isWithInSchedule(today))
-    }
-
-    @Test
-    fun illegalArgument_WhenEndDateIsBeforeStartDate() {
-        assertThrows<IllegalArgumentException> { Schedule(tomorrow, today) }
-    }
-
-    @Test
-    fun shouldNotBeAvailable_OnAnyTimeToday() {
-        val s = Schedule(tomorrow)
-        assertFalse(s.isWithInSchedule(LocalTime.now()))
-    }
-
-    @Test
-    fun shouldBeAvailable_OnATimeOfADayInSchedule() {
-        val s = Schedule(yesterday, tomorrow)
-        assertTrue(s.isWithInSchedule(threeOClock, tomorrow))
-    }
-
-    @Test
-    fun shouldNotBeAvailable_OnATimeBeforeScheduleStart() {
-        val s = Schedule(yesterday, today, fourOClock)
-        assertFalse(s.isWithInSchedule(threeOClock))
-    }
-
-    @Test
-    fun shouldNotBeAvailable_OnATimeAfterEnd() {
-        val s = Schedule(yesterday, today, threeOClock, fourOClock)
-        assertFalse(s.isWithInSchedule(fiveOClock))
-    }
-
-    @Test
-    fun illegalArgument_WhenStartTimeEqualsEndTime() {
-        assertThrows<IllegalArgumentException> {
-            Schedule(today, startTime = threeOClock, endTime = threeOClock)
+    fun endShouldNotComeBeforeStart(){
+        assertThrows<IllegalArgumentException>{
+            Schedule(tomorrow, today)
         }
     }
 
     @Test
-    fun crossesDayBoundary_WhenEndComesBeforeStartTime() {
+    fun shouldRecurDaily(){
+        assertTrue(Schedule(today).recursDaily())
+    }
+
+    @Test
+    fun shouldRecurWeekly(){
+        val s = Schedule(today)
+        s.updateRecurrence(RecurrenceType.Weekly)
+        assertTrue(s.recursWeekly())
+        assertFalse(s.recursDaily())
+    }
+
+    @Test
+    fun hasRecurrenceIntervalOf_One(){
+        assertEquals(1, Schedule(today).recurrenceInterval)
+    }
+
+    @Test
+    fun shouldNotAllowANonPositiveRecurrenceInterval(){
+        val s = Schedule(today)
+        assertThrows<IllegalArgumentException>{
+            s.updateRecurrence(0)
+        }
+    }
+
+    @Test
+    fun startTimeCanNotBeEqualToEndTime() {
+        assertThrows<IllegalArgumentException>{
+            Schedule(today, tomorrow, threeOClock, threeOClock)
+        }
+    }
+
+    @Test
+    fun crossBoundary_Allowed(){
         val s = Schedule(today, startTime = fourOClock, endTime = threeOClock)
         assertTrue(s.crossesDayBoundary)
     }
 
     @Test
-    fun doesNotCrossBoundary_WhenEndComesAfterStartTime() {
+    fun doesNotCrossBoundary_WhenStartTimeComesBeforeEndTime() {
         val s = Schedule(today, startTime = threeOClock, endTime = fourOClock)
         assertFalse(s.crossesDayBoundary)
     }
 
     @Test
-    fun isWithInSchedule_IfCrossesBoundaryAndTimeIsAfterStartTime() {
-        val s = Schedule(today, startTime = fourOClock, endTime = threeOClock)
-        assertTrue(s.isWithInSchedule(fiveOClock))
+    fun shouldReturnEmpty_WhenDateNotWithInSchedule(){
+        val s = Schedule(today)
+        assertEquals(0, s.periodsAt(yesterday).size)
     }
 
     @Test
-    fun isWithInSchedule_IfCrossesBoundaryAnd_DayIsNotTheFirstDay_AndTimeIsBeforeEndTime() {
-        val s = Schedule(today, tomorrow, startTime = fourOClock, endTime = threeOClock)
-        assertTrue(s.isWithInSchedule(twoOClock, tomorrow))
+    fun shouldReturn_ASingleFullDayPeriod_forFullDaySchedules(){
+        val s = Schedule(today)
+        val periods = s.periodsAt(today)
+        assertEquals(1, periods.size)
+        assertTrue(periods[0].isFullDay)
     }
 
     @Test
-    fun isNotWithInSchedule_IfCrossesBoundary_IsTheFirstDay_TimeIsBeforeEndTime() {
-        val s = Schedule(today, tomorrow, startTime = fourOClock, endTime = threeOClock)
-        assertFalse(s.isWithInSchedule(twoOClock, today))
-    }
-
-    @Test
-    fun theDayAfterTheLastDay_isWithInSchedule_WhenScheduleCrossesBoundary() {
-        val s = Schedule(today, today, startTime = fourOClock, endTime = threeOClock)
-        assertTrue(s.isWithInSchedule(tomorrow))
-    }
-
-    @Test
-    fun theTimeAfterStartTimeIsNotWithInSchedule_WhenCrossesBoundaryAndDateIsTheLastDay() {
-        val s = Schedule(today, today, fourOClock, threeOClock)
-        assertFalse(s.isWithInSchedule(fiveOClock, tomorrow))
+    fun shouldReturn_TwoPeriods_WhenDayBoundaryIsCrossed(){
+        val s = Schedule(today, null, fourOClock, twoOClock)
+        val periods = s.periodsAt(today)
+        assertEquals(2, periods.size)
     }
 }

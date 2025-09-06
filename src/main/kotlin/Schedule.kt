@@ -1,40 +1,63 @@
 package org.example
 
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 class Schedule(
-    val start: LocalDate,
-    val end: LocalDate? = null,
-    val startTime: LocalTime = LocalTime.MIN,
-    val endTime: LocalTime = LocalTime.MAX) {
-
+    val startDateTime: LocalDateTime,
+    val endDateTime: LocalDateTime? = null,
+    startTime: LocalTime = LocalTime.MIN,
+    endTime: LocalTime = LocalTime.MAX
+) {
     init {
-        require(end == null || start <= end) {
-            "endDate should not come before startDate"
+        require(endDateTime == null || startDateTime <= endDateTime){
+            "end of schedule should not come before its start"
         }
 
         require(!startTime.equals(endTime)) {
-            "endTime cannot equal startTime"
+            "start time and end time can not be equal"
         }
     }
 
-    fun isWithInSchedule(date: LocalDate): Boolean {
-        if (start > date) return false
-        if (end == null) return true
-        if (date <= end) return true
-        return crossesDayBoundary && date.isEqual(end.plusDays(1))
+    constructor(
+        startDate: LocalDate,
+        endDate: LocalDate? = null,
+        startTime: LocalTime = LocalTime.MIN,
+        endTime: LocalTime = LocalTime.MAX
+    ): this(
+        startDate.atStartOfDay(),
+        endDate?.atStartOfDay(),
+        startTime, endTime
+    )
+
+    var recurrenceType = RecurrenceType.Daily
+    var recurrenceInterval = 1
+
+    fun recursDaily() = recurrenceType == RecurrenceType.Daily
+    fun recursWeekly() = recurrenceType == RecurrenceType.Weekly
+    val isForever = endDateTime == null
+    val crossesDayBoundary = startTime > endTime
+
+    fun updateRecurrence(type: RecurrenceType) {
+        recurrenceType = type
     }
 
-    fun isWithInSchedule(time: LocalTime, date: LocalDate =  LocalDate.now()) : Boolean {
-        if (!isWithInSchedule(date))
-            return false
-
-        return if (crossesDayBoundary) time >= startTime || time <= endTime
-        else time in startTime..endTime
+    fun updateRecurrence(interval: Int){
+        require(interval > 0) {
+            "recurrence interval can only be a positive integer"
+        }
+        recurrenceInterval = interval
     }
 
-    val crossesDayBoundary = endTime < startTime
-    val recursDaily = true
-    val isForever = end == null
+    fun periodsAt(date: LocalDate) : Array<Period> {
+        if (date < startDateTime.toLocalDate() || (endDateTime != null && date > endDateTime.toLocalDate()))
+            return arrayOf()
+        return if (!crossesDayBoundary) arrayOf(Period())
+        else arrayOf(Period(), Period())
+    }
+}
+
+enum class RecurrenceType {
+    Daily, Weekly
 }
