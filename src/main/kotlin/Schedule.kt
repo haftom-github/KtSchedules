@@ -1,5 +1,7 @@
 package org.example
 
+import org.example.sequence.ISequence
+import org.example.sequence.SequenceFactory
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -46,12 +48,23 @@ class Schedule(
         if(type != null) recurrenceType = type
     }
 
-    fun periodsAt(date: LocalDate) : Array<Period> {
-        if (date < startDateTime.toLocalDate() || (endDateTime != null && date > endDateTime.toLocalDate()))
-            return arrayOf()
-        if (!crossesDayBoundary) return arrayOf(Period(startTime, endTime))
-        val splits = split()
-        return splits[0].periodsAt(date) + splits[1].periodsAt(date)
+    fun periodsAt(date: LocalDate) : List<Period> {
+        val sequenceMap = toSequencesMap()
+        val periods: MutableList<Period> = mutableListOf()
+        for ((key, sequences) in sequenceMap) {
+            for (sequence in sequences) {
+                if (sequence.isMember(date.toEpochDay().toInt())){
+                    periods.add(
+                        when(key){
+                            "before" -> periodBeforeMidNight()
+                            else -> periodAfterMidNight()
+                        }
+                    )
+                    break
+                }
+            }
+        }
+        return periods
     }
 
     private fun split(): Array<Schedule> {
@@ -68,6 +81,38 @@ class Schedule(
 
         afterMidnight.updateRecurrence(recurrenceType, recurrenceInterval)
         return arrayOf(beforeMidnight, afterMidnight)
+    }
+
+    private fun toSequencesMap(): Map<String, Array<ISequence>> {
+        val splits = split()
+        val keys = arrayOf("before", "after")
+        val sequencesMap = HashMap<String, Array<ISequence>>()
+
+        for (i in 0 until splits.size) {
+            sequencesMap[keys[i]] = arrayOf(
+                SequenceFactory.create(
+                    splits[i].startDateTime.toLocalDate().toEpochDay().toInt(),
+                    splits[i].endDateTime?.toLocalDate()?.toEpochDay()?.toInt(),
+                    recurrenceInterval
+                )
+            )
+        }
+
+        return sequencesMap
+    }
+
+    private fun periodBeforeMidNight() : Period {
+        return when (crossesDayBoundary) {
+            true -> Period(startTime)
+            false -> Period(startTime, endTime)
+        }
+    }
+
+    private fun periodAfterMidNight() : Period {
+        return when (crossesDayBoundary) {
+            true -> Period(endTime = endTime)
+            false -> Period(startTime, endTime)
+        }
     }
 }
 
