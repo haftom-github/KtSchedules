@@ -2,6 +2,7 @@ package org.example
 
 import org.example.sequence.ISequence
 import org.example.sequence.SequenceFactory
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -35,17 +36,24 @@ class Schedule(
 
     var recurrenceType = RecurrenceType.Daily
     var recurrenceInterval = 1
-    fun recursDaily() = recurrenceType == RecurrenceType.Daily
-    fun recursWeekly() = recurrenceType == RecurrenceType.Weekly
+    val daysOfWeek = mutableSetOf<DayOfWeek>()
     val isForever = endDateTime == null
     val crossesDayBoundary = startTime > endTime
 
-    fun updateRecurrence(type: RecurrenceType? = null, interval: Int = 1) {
-        require(interval > 0) {
-            "recurrence interval can only be a positive integer"
+    fun updateRecurrence(type: RecurrenceType? = null, interval: Int? = null) {
+        if(interval != null) {
+            require(interval > 0) {
+                "recurrence interval can only be a positive integer"
+            }
+
+            recurrenceInterval = interval
         }
-        recurrenceInterval = interval
         if(type != null) recurrenceType = type
+    }
+
+    fun recurWeekly(daysOfWeek: Set<DayOfWeek>) {
+        this.daysOfWeek.clear()
+        this.daysOfWeek.addAll(daysOfWeek)
     }
 
     fun periodsAtDate(date: LocalDate) : List<Period> {

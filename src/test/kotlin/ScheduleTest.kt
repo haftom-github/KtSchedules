@@ -3,8 +3,10 @@ import org.example.Schedule
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlin.test.assertContains
 
 class ScheduleTest {
     val today = LocalDate.now()!!
@@ -38,15 +40,7 @@ class ScheduleTest {
 
     @Test
     fun shouldRecurDaily(){
-        assertTrue(Schedule(today).recursDaily())
-    }
-
-    @Test
-    fun shouldRecurWeekly(){
-        val s = Schedule(today)
-        s.updateRecurrence(RecurrenceType.Weekly)
-        assertTrue(s.recursWeekly())
-        assertFalse(s.recursDaily())
+        assertEquals(RecurrenceType.Daily, Schedule(today).recurrenceType)
     }
 
     @Test
@@ -171,5 +165,31 @@ class ScheduleTest {
         s.updateRecurrence(interval = 3)
 
         assertEquals(0, s.periodsAtDate(tomorrow).size)
+    }
+
+    @Test
+    fun shouldUpdateRecurrence(){
+        val s = Schedule(today)
+
+        s.updateRecurrence(interval = 2)
+        assertEquals(2, s.recurrenceInterval)
+
+        s.updateRecurrence(type = RecurrenceType.Weekly)
+        assertEquals(2, s.recurrenceInterval)
+        assertEquals(RecurrenceType.Weekly, s.recurrenceType)
+
+        s.updateRecurrence(RecurrenceType.Daily, 3)
+        assertEquals(RecurrenceType.Daily, s.recurrenceType)
+        assertEquals(3, s.recurrenceInterval)
+    }
+
+    // weekly recurrences
+    @Test
+    fun shouldRecurWeekly_AtASpecifiedInterval(){
+        val s = Schedule(today)
+
+        s.recurWeekly(hashSetOf(DayOfWeek.MONDAY))
+        assertEquals(1, s.daysOfWeek.size)
+        assertContains(s.daysOfWeek, DayOfWeek.MONDAY)
     }
 }
