@@ -48,7 +48,7 @@ class Schedule(
         if(type != null) recurrenceType = type
     }
 
-    fun periodsAt(date: LocalDate) : List<Period> {
+    fun periodsAtDate(date: LocalDate) : List<Period> {
         val sequenceMap = toSequencesMap()
         val periods: MutableList<Period> = mutableListOf()
         for ((key, sequences) in sequenceMap) {
