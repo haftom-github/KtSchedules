@@ -78,52 +78,52 @@ class ScheduleTest {
     @Test
     fun shouldReturnEmpty_WhenDateNotWithInSchedule(){
         val s = Schedule(today)
-        assertEquals(0, s.periodsAtDate(yesterday).size)
+        assertEquals(0, s.slotsAtDate(yesterday).size)
     }
 
     @Test
     fun shouldReturn_ASingleFullDayPeriod_forFullDaySchedules(){
         val s = Schedule(today)
-        val periods = s.periodsAtDate(today)
-        assertEquals(1, periods.size)
-        assertTrue(periods[0].isFullDay)
+        val slots = s.slotsAtDate(today)
+        assertEquals(1, slots.size)
+        assertTrue(slots[0].isFullDay)
     }
 
     @Test
     fun shouldReturn_TwoPeriods_WhenDayBoundaryIsCrossed() {
         val s = Schedule(today, null, fourOClock, twoOClock)
-        val periods = s.periodsAtDate(tomorrow)
-        assertEquals(2, periods.size)
+        val slots = s.slotsAtDate(tomorrow)
+        assertEquals(2, slots.size)
     }
 
     @Test
     fun startAndEndOfPeriodShouldEqualStartTime_whenDayBoundaryNotCrossed(){
         val s = Schedule(today, null, twoOClock, threeOClock)
-        val periods = s.periodsAtDate(today)
-        assertEquals(twoOClock, periods[0].startTime)
-        assertEquals(threeOClock, periods[0].endTime)
+        val slots = s.slotsAtDate(today)
+        assertEquals(twoOClock, slots[0].startTime)
+        assertEquals(threeOClock, slots[0].endTime)
     }
 
     @Test
-    fun secondPeriod_ShouldMatchAfterMidNightSchedule_WhenDayBoundaryIsCrossed() {
+    fun secondSlot_ShouldMatchAfterMidNightSchedule_WhenDayBoundaryIsCrossed() {
         val s = Schedule(today, null, threeOClock, twoOClock)
-        val firstPeriod = s.periodsAtDate(tomorrow)[1]
-        assertEquals(LocalTime.MIN, firstPeriod.startTime)
-        assertEquals(twoOClock, firstPeriod.endTime)
+        val firstSlot = s.slotsAtDate(tomorrow)[1]
+        assertEquals(LocalTime.MIN, firstSlot.startTime)
+        assertEquals(twoOClock, firstSlot.endTime)
     }
 
     @Test
-    fun firstPeriod_ShouldMatchBeforeMidNight_WhenDayBoundaryCrossed(){
+    fun firstSlot_ShouldMatchBeforeMidNight_WhenDayBoundaryCrossed(){
         val s = Schedule(today, null, threeOClock, twoOClock)
-        val secondPeriod = s.periodsAtDate(today)[0]
-        assertEquals(threeOClock, secondPeriod.startTime)
-        assertEquals(LocalTime.MAX, secondPeriod.endTime)
+        val secondSlot = s.slotsAtDate(today)[0]
+        assertEquals(threeOClock, secondSlot.startTime)
+        assertEquals(LocalTime.MAX, secondSlot.endTime)
     }
 
     @Test
     fun thereCanNotBeTwoPeriods_WhenIsRecurringDaily_AtMoreThanOneInterval_AndCrossesBoundary(){
         val s = Schedule(today, startTime = fiveOClock, endTime = threeOClock)
-        assertEquals(1, s.periodsAtDate(today).size)
+        assertEquals(1, s.slotsAtDate(today).size)
     }
 
     // intervals different from 1
@@ -132,15 +132,15 @@ class ScheduleTest {
         val s = Schedule(yesterday, startTime = fiveOClock, endTime = fourOClock)
         s.updateRecurrence(interval = 2)
 
-        var periods = s.periodsAtDate(yesterday)
-        assertEquals(1, periods.size)
-        assertEquals(LocalTime.MAX, periods[0].endTime)
-        assertEquals(s.startTime, periods[0].startTime)
+        var slots = s.slotsAtDate(yesterday)
+        assertEquals(1, slots.size)
+        assertEquals(LocalTime.MAX, slots[0].endTime)
+        assertEquals(s.startTime, slots[0].startTime)
 
-        periods = s.periodsAtDate(tomorrow)
-        assertEquals(1, periods.size)
-        assertEquals(LocalTime.MAX, periods[0].endTime)
-        assertEquals(s.startTime, periods[0].startTime)
+        slots = s.slotsAtDate(tomorrow)
+        assertEquals(1, slots.size)
+        assertEquals(LocalTime.MAX, slots[0].endTime)
+        assertEquals(s.startTime, slots[0].startTime)
     }
 
     @Test
@@ -148,15 +148,15 @@ class ScheduleTest {
         val s = Schedule(yesterday, startTime = fiveOClock, endTime = fourOClock)
         s.updateRecurrence(interval = 2)
 
-        var periods = s.periodsAtDate(today)
-        assertEquals(1, periods.size)
-        assertEquals(s.endTime, periods[0].endTime)
-        assertEquals(LocalTime.MIN, periods[0].startTime)
+        var slots = s.slotsAtDate(today)
+        assertEquals(1, slots.size)
+        assertEquals(s.endTime, slots[0].endTime)
+        assertEquals(LocalTime.MIN, slots[0].startTime)
 
-        periods = s.periodsAtDate(afterTomorrow)
-        assertEquals(1, periods.size)
-        assertEquals(s.endTime, periods[0].endTime)
-        assertEquals(LocalTime.MIN, periods[0].startTime)
+        slots = s.slotsAtDate(afterTomorrow)
+        assertEquals(1, slots.size)
+        assertEquals(s.endTime, slots[0].endTime)
+        assertEquals(LocalTime.MIN, slots[0].startTime)
     }
 
     @Test
@@ -164,7 +164,7 @@ class ScheduleTest {
         val s = Schedule(yesterday, startTime = fiveOClock, endTime = fourOClock)
         s.updateRecurrence(interval = 3)
 
-        assertEquals(0, s.periodsAtDate(tomorrow).size)
+        assertEquals(0, s.slotsAtDate(tomorrow).size)
     }
 
     @Test
@@ -188,8 +188,14 @@ class ScheduleTest {
     fun shouldRecurWeekly_AtASpecifiedInterval(){
         val s = Schedule(today)
 
-        s.recurWeekly(hashSetOf(DayOfWeek.MONDAY))
+        s.updateRecurrence(RecurrenceType.Weekly, daysOfWeek = hashSetOf(DayOfWeek.MONDAY))
+        assertEquals(RecurrenceType.Weekly, s.recurrenceType)
         assertEquals(1, s.daysOfWeek.size)
         assertContains(s.daysOfWeek, DayOfWeek.MONDAY)
+
+        s.updateRecurrence(RecurrenceType.Weekly, daysOfWeek = hashSetOf(), interval = 5)
+        assertEquals(5, s.recurrenceInterval)
+        assertEquals(0, s.daysOfWeek.size)
+        assertEquals(RecurrenceType.Weekly, s.recurrenceType)
     }
 }

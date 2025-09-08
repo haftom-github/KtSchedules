@@ -2,7 +2,7 @@ package org.example
 
 import java.time.LocalTime
 
-class Period (
+class Slot (
     val startTime: LocalTime = LocalTime.MIN,
     val endTime: LocalTime = LocalTime.MAX
 ) {

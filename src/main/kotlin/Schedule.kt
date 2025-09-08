@@ -40,7 +40,7 @@ class Schedule(
     val isForever = endDateTime == null
     val crossesDayBoundary = startTime > endTime
 
-    fun updateRecurrence(type: RecurrenceType? = null, interval: Int? = null) {
+    fun updateRecurrence(type: RecurrenceType? = null, interval: Int? = null, daysOfWeek: Set<DayOfWeek>? = null) {
         if(interval != null) {
             require(interval > 0) {
                 "recurrence interval can only be a positive integer"
@@ -48,21 +48,22 @@ class Schedule(
 
             recurrenceInterval = interval
         }
+
         if(type != null) recurrenceType = type
+
+        if(daysOfWeek != null){
+            this.daysOfWeek.clear()
+            this.daysOfWeek.addAll(daysOfWeek)
+        }
     }
 
-    fun recurWeekly(daysOfWeek: Set<DayOfWeek>) {
-        this.daysOfWeek.clear()
-        this.daysOfWeek.addAll(daysOfWeek)
-    }
-
-    fun periodsAtDate(date: LocalDate) : List<Period> {
+    fun slotsAtDate(date: LocalDate) : List<Slot> {
         val sequenceMap = toSequencesMap()
-        val periods: MutableList<Period> = mutableListOf()
+        val slots: MutableList<Slot> = mutableListOf()
         for ((key, sequences) in sequenceMap) {
             for (sequence in sequences) {
                 if (sequence.isMember(date.toEpochDay().toInt())){
-                    periods.add(
+                    slots.add(
                         when(key){
                             "before" -> periodBeforeMidNight()
                             else -> periodAfterMidNight()
@@ -72,7 +73,7 @@ class Schedule(
                 }
             }
         }
-        return periods
+        return slots
     }
 
     private fun split(): Array<Schedule> {
@@ -109,17 +110,17 @@ class Schedule(
         return sequencesMap
     }
 
-    private fun periodBeforeMidNight() : Period {
+    private fun periodBeforeMidNight() : Slot {
         return when (crossesDayBoundary) {
-            true -> Period(startTime)
-            false -> Period(startTime, endTime)
+            true -> Slot(startTime)
+            false -> Slot(startTime, endTime)
         }
     }
 
-    private fun periodAfterMidNight() : Period {
+    private fun periodAfterMidNight() : Slot {
         return when (crossesDayBoundary) {
-            true -> Period(endTime = endTime)
-            false -> Period(startTime, endTime)
+            true -> Slot(endTime = endTime)
+            false -> Slot(startTime, endTime)
         }
     }
 }
